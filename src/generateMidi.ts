@@ -10,6 +10,8 @@ export interface SongContext {
   tempo: number;
   rootNote: number; // 0–11, C = 0
   scaleName: string;
+  scaleIntervals?: number[]; // e.g. [0, 2, 4, 5, 7, 9, 11] for major
+  timeSignature?: { numerator: number; denominator: number };
 }
 
 export interface RefinementContext {
@@ -36,7 +38,14 @@ const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", 
 export function buildSongContextSection(ctx: SongContext): string {
   const noteName = NOTE_NAMES[ctx.rootNote % 12] ?? "C";
   const key = ctx.scaleName ? `${noteName} ${ctx.scaleName}` : noteName;
-  return `\n\nSong context (match this unless the prompt specifies otherwise):\n- Tempo: ${Math.round(ctx.tempo)} BPM\n- Key: ${key}`;
+  let section = `\n\nSong context (match this unless the prompt specifies otherwise):\n- Tempo: ${Math.round(ctx.tempo)} BPM\n- Key: ${key}`;
+  if (ctx.timeSignature) {
+    section += `\n- Time signature: ${ctx.timeSignature.numerator}/${ctx.timeSignature.denominator}`;
+  }
+  if (ctx.scaleIntervals && ctx.scaleIntervals.length > 0) {
+    section += `\n- Scale intervals (semitones from root): [${ctx.scaleIntervals.join(", ")}]`;
+  }
+  return section;
 }
 
 const SYSTEM_PROMPT = `You are an expert MIDI composer creating clips for Ableton Live. Musical quality is the top priority — every clip must sound like something a skilled musician actually played, not a mechanical exercise.
@@ -115,7 +124,12 @@ function extractJson(text: string): string {
 
 export async function generateMidiFromPrompt(
   prompt: string,
-  options?: { suggestInstrument?: boolean; songContext?: SongContext; refinement?: RefinementContext }
+  options?: {
+    suggestInstrument?: boolean;
+    songContext?: SongContext;
+    refinement?: RefinementContext;
+    sessionContext?: string;
+  }
 ): Promise<GeneratedMidi> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -140,7 +154,10 @@ export async function generateMidiFromPrompt(
       },
       system:
         (options?.suggestInstrument ? SYSTEM_PROMPT + INSTRUMENT_ADDENDUM : SYSTEM_PROMPT) +
-        (options?.songContext ? buildSongContextSection(options.songContext) : ""),
+        (options?.songContext ? buildSongContextSection(options.songContext) : "") +
+        (options?.sessionContext
+          ? `\n\nSession context (existing tracks — generate something that complements these):\n${options.sessionContext}`
+          : ""),
       messages: buildMessages(prompt, options?.refinement),
     }),
   });

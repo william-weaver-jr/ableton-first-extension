@@ -168,6 +168,46 @@ describe("generateMidiFromPrompt", () => {
     expect(body.system).toContain("Key: A Minor");
   });
 
+  it("includes scaleIntervals and timeSignature in system prompt when provided", async () => {
+    const payload = JSON.stringify({
+      notes: [{ pitch: 60, startTime: 0, duration: 1, velocity: 80 }],
+      clipLength: 4,
+    });
+    vi.mocked(fetch).mockResolvedValue(makeFetchResponse(payload));
+
+    await generateMidiFromPrompt("test", {
+      songContext: {
+        tempo: 120,
+        rootNote: 0,
+        scaleName: "Major",
+        scaleIntervals: [0, 2, 4, 5, 7, 9, 11],
+        timeSignature: { numerator: 3, denominator: 4 },
+      },
+    });
+
+    const body = JSON.parse((vi.mocked(fetch).mock.calls[0]![1] as RequestInit).body as string);
+    expect(body.system).toContain("Time signature: 3/4");
+    expect(body.system).toContain("Scale intervals");
+    expect(body.system).toContain("0, 2, 4, 5, 7, 9, 11");
+  });
+
+  it("appends session context to system prompt when provided", async () => {
+    const payload = JSON.stringify({
+      notes: [{ pitch: 60, startTime: 0, duration: 1, velocity: 80 }],
+      clipLength: 4,
+    });
+    vi.mocked(fetch).mockResolvedValue(makeFetchResponse(payload));
+
+    await generateMidiFromPrompt("test", {
+      sessionContext: "2 track(s):\n  - Bass [Analog]\n  - Drums [Impulse]",
+    });
+
+    const body = JSON.parse((vi.mocked(fetch).mock.calls[0]![1] as RequestInit).body as string);
+    expect(body.system).toContain("Session context");
+    expect(body.system).toContain("Bass [Analog]");
+    expect(body.system).toContain("Drums [Impulse]");
+  });
+
   it("sends extended thinking parameters in every request", async () => {
     const payload = JSON.stringify({
       notes: [{ pitch: 60, startTime: 0, duration: 1, velocity: 80 }],
