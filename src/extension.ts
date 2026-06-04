@@ -124,16 +124,15 @@ export async function activate(activation: ActivationContext) {
         const instrumentName = userInstrument ?? generated.instrument?.name;
 
         if (instrumentName && (userInstrument !== undefined || !hasExistingDevices)) {
-          if (hasExistingDevices) {
-            console.log(`[generateMidi] User requested ${instrumentName} — adding alongside existing device(s)`);
-          } else {
-            console.log(`[generateMidi] Loading suggested instrument: ${instrumentName}`);
-          }
+          const reason = hasExistingDevices ? "user specified" : "suggested";
+          console.log(`[generateMidi] Loading ${instrumentName} (${reason})`);
           await update(`Loading ${instrumentName}...`, 70);
           try {
             await track.insertDevice(instrumentName, 0);
-          } catch {
-            console.warn(`[generateMidi] Could not load ${instrumentName} — device may not be installed`);
+          } catch (err) {
+            console.error(`[generateMidi] insertDevice("${instrumentName}") failed:`, err);
+            await update(`⚠ Could not load ${instrumentName}`, 70);
+            await new Promise((r) => setTimeout(r, 1500));
           }
         } else if (hasExistingDevices) {
           console.log(`[generateMidi] Skipping instrument — track already has ${track.devices.length} device(s); specify one in your prompt to override`);
@@ -204,12 +203,15 @@ export async function activate(activation: ActivationContext) {
         // User-specified instrument takes priority over Claude's suggestion.
         const instrumentName = userInstrument ?? generated.instrument?.name;
         if (instrumentName && !signal.aborted) {
-          console.log(`[generateMidiNewTrack] Loading instrument: ${instrumentName}${userInstrument ? " (user specified)" : " (suggested)"}`);
+          const reason = userInstrument ? "user specified" : "suggested";
+          console.log(`[generateMidiNewTrack] Loading ${instrumentName} (${reason})`);
           await update(`Loading ${instrumentName}...`, 65);
           try {
             await newTrack.insertDevice(instrumentName, 0);
-          } catch {
-            console.warn(`[generateMidiNewTrack] Could not load ${instrumentName} — device may not be installed`);
+          } catch (err) {
+            console.error(`[generateMidiNewTrack] insertDevice("${instrumentName}") failed:`, err);
+            await update(`⚠ Could not load ${instrumentName}`, 65);
+            await new Promise((r) => setTimeout(r, 1500));
           }
         }
 
