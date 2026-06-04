@@ -106,7 +106,7 @@ function buildMessages(
 }
 
 function extractJson(text: string): string {
-  const fenced = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+  const fenced = text.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
   if (fenced) return fenced[1]!;
   const bare = text.match(/(\{[\s\S]*\})/);
   if (bare) return bare[1]!;

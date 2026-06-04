@@ -218,10 +218,11 @@ describe("generateMidiFromPrompt", () => {
     expect(body.messages[0].content).toBe("Generate a MIDI clip");
   });
 
-  it("parses JSON wrapped in markdown code fences", async () => {
+  it("parses JSON wrapped in markdown code fences, including nested objects", async () => {
     const jsonPayload = JSON.stringify({
       notes: [{ pitch: 60, startTime: 0, duration: 1, velocity: 80 }],
       clipLength: 4,
+      instrument: { name: "Analog" },
     });
     const fenced = `Here is the MIDI clip:\n\`\`\`json\n${jsonPayload}\n\`\`\``;
     vi.mocked(fetch).mockResolvedValue({
@@ -233,6 +234,7 @@ describe("generateMidiFromPrompt", () => {
     const result = await generateMidiFromPrompt("R&B keys");
     expect(result.clipLength).toBe(4);
     expect(result.notes).toHaveLength(1);
+    expect(result.instrument?.name).toBe("Analog");
   });
 
   it("extracts text block from a response that includes thinking blocks", async () => {
