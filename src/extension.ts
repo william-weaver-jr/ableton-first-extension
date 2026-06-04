@@ -90,6 +90,13 @@ export async function activate(activation: ActivationContext) {
     const { prompt } = JSON.parse(result) as { prompt?: string };
     if (!prompt) return; // user cancelled
 
+    const song = context.application.song;
+    const songContext = {
+      tempo: song.tempo,
+      rootNote: song.rootNote,
+      scaleName: song.scaleName,
+    };
+
     // Generate and insert the clip
     await context.ui.withinProgressDialog(
       "Generating MIDI...",
@@ -99,7 +106,7 @@ export async function activate(activation: ActivationContext) {
 
         let generated;
         try {
-          generated = await generateMidiFromPrompt(prompt);
+          generated = await generateMidiFromPrompt(prompt, { songContext });
         } catch (err) {
           await update(`Error: ${String(err)}`, 0);
           await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -137,6 +144,11 @@ export async function activate(activation: ActivationContext) {
     if (!prompt) return;
 
     const song = context.application.song;
+    const songContext = {
+      tempo: song.tempo,
+      rootNote: song.rootNote,
+      scaleName: song.scaleName,
+    };
 
     await context.ui.withinProgressDialog(
       "Generating MIDI...",
@@ -148,6 +160,7 @@ export async function activate(activation: ActivationContext) {
         try {
           generated = await generateMidiFromPrompt(prompt, {
             suggestInstrument: true,
+            songContext,
           });
         } catch (err) {
           await update(`Error: ${String(err)}`, 0);

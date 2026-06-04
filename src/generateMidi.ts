@@ -6,6 +6,20 @@ export interface GeneratedMidi {
   instrument?: { name: string };
 }
 
+export interface SongContext {
+  tempo: number;
+  rootNote: number; // 0–11, C = 0
+  scaleName: string;
+}
+
+const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+
+function buildSongContextSection(ctx: SongContext): string {
+  const noteName = NOTE_NAMES[ctx.rootNote % 12] ?? "C";
+  const key = ctx.scaleName ? `${noteName} ${ctx.scaleName}` : noteName;
+  return `\n\nSong context (match this unless the prompt specifies otherwise):\n- Tempo: ${Math.round(ctx.tempo)} BPM\n- Key: ${key}`;
+}
+
 const SYSTEM_PROMPT = `You are a MIDI composition assistant. Given a text description, generate a MIDI clip as JSON.
 
 Return ONLY valid JSON — no explanation, no markdown fences, just the raw JSON object:
@@ -45,7 +59,7 @@ Guidelines:
 
 export async function generateMidiFromPrompt(
   prompt: string,
-  options?: { suggestInstrument?: boolean }
+  options?: { suggestInstrument?: boolean; songContext?: SongContext }
 ): Promise<GeneratedMidi> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -64,9 +78,9 @@ export async function generateMidiFromPrompt(
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
       max_tokens: 4096,
-      system: options?.suggestInstrument
-        ? SYSTEM_PROMPT + INSTRUMENT_ADDENDUM
-        : SYSTEM_PROMPT,
+      system:
+        (options?.suggestInstrument ? SYSTEM_PROMPT + INSTRUMENT_ADDENDUM : SYSTEM_PROMPT) +
+        (options?.songContext ? buildSongContextSection(options.songContext) : ""),
       messages: [{ role: "user", content: prompt }],
     }),
   });
