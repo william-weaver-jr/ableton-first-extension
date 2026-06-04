@@ -53,6 +53,7 @@ Key SDK types used in this project:
 |---|---|---|---|
 | `MidiTrack` | "Generate MIDI from prompt..." | `generateMidi` | Generates a clip on the right-clicked track |
 | `Scene` / `AudioTrack` | "Generate MIDI on new track..." | `generateMidiNewTrack` | Creates a new MIDI track, loads a suggested instrument, drops the clip |
+| `MidiClip` | "Refine MIDI..." | `refineMidi` | Edits the clip's notes in-place; sends the existing notes + clip name as context so Claude can iterate |
 
 ### Instrument loading
 

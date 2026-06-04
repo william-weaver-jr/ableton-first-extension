@@ -1,12 +1,14 @@
 import {
   initialize,
+  MidiClip,
   MidiTrack,
   type ActivationContext,
   type Handle,
 } from "@ableton-extensions/sdk";
 import { generateMidiFromPrompt, detectUserSpecifiedInstrument } from "./generateMidi.js";
 
-const PROMPT_DIALOG_HTML = `<!DOCTYPE html>
+function makeDialog(label: string, placeholder: string, submitLabel: string): string {
+  return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -40,13 +42,11 @@ const PROMPT_DIALOG_HTML = `<!DOCTYPE html>
   </style>
 </head>
 <body>
-  <label>Describe the MIDI pattern</label>
-  <textarea id="prompt"
-    placeholder="e.g. a funky 4-bar bassline in C minor, syncopated 16th notes"
-    autofocus></textarea>
+  <label>${label}</label>
+  <textarea id="prompt" placeholder="${placeholder}" autofocus></textarea>
   <div class="buttons">
     <button class="cancel" onclick="cancel()">Cancel</button>
-    <button class="generate" id="generateBtn" onclick="submit()">Generate</button>
+    <button class="generate" id="generateBtn" onclick="submit()">${submitLabel}</button>
   </div>
   <script>
     function post(payload) {
@@ -70,6 +70,19 @@ const PROMPT_DIALOG_HTML = `<!DOCTYPE html>
   </script>
 </body>
 </html>`;
+}
+
+const PROMPT_DIALOG_HTML = makeDialog(
+  "Describe the MIDI pattern",
+  "e.g. a funky 4-bar bassline in C minor, syncopated 16th notes",
+  "Generate"
+);
+
+const REFINE_DIALOG_HTML = makeDialog(
+  "What would you like to change?",
+  "e.g. more syncopation, add swing, brighter melody, slower feel...",
+  "Refine"
+);
 
 export async function activate(activation: ActivationContext) {
   const context = initialize(activation, "1.0.0");
@@ -228,6 +241,59 @@ export async function activate(activation: ActivationContext) {
     );
   });
 
+  context.commands.registerCommand("refineMidi", async (...args) => {
+    const handle = args[0] as Handle;
+    const clip = context.getObjectFromHandle(handle, MidiClip);
+
+    const dialogUrl = `data:text/html,${encodeURIComponent(REFINE_DIALOG_HTML)}`;
+    let result: string;
+    try {
+      result = await context.ui.showModalDialog(dialogUrl, 480, 240);
+    } catch {
+      return;
+    }
+
+    const { prompt } = JSON.parse(result) as { prompt?: string };
+    if (!prompt) return;
+
+    const song = context.application.song;
+    const songContext = {
+      tempo: song.tempo,
+      rootNote: song.rootNote,
+      scaleName: song.scaleName,
+    };
+    const refinement = {
+      notes: clip.notes,
+      clipLength: clip.duration,
+      originalPrompt: clip.name,
+    };
+
+    await context.ui.withinProgressDialog(
+      "Refining MIDI...",
+      { progress: 0 },
+      async (update, signal) => {
+        await update("Asking Claude...", 10);
+
+        let generated;
+        try {
+          generated = await generateMidiFromPrompt(prompt, { songContext, refinement });
+        } catch (err) {
+          await update(`Error: ${String(err)}`, 0);
+          await new Promise((r) => setTimeout(r, 3000));
+          return;
+        }
+
+        if (signal.aborted) return;
+        await update("Updating clip...", 85);
+
+        clip.notes = generated.notes;
+
+        await update("Done!", 100);
+        await new Promise((r) => setTimeout(r, 600));
+      }
+    );
+  });
+
   await Promise.all([
     context.ui.registerContextMenuAction(
       "MidiTrack",
@@ -243,6 +309,11 @@ export async function activate(activation: ActivationContext) {
       "AudioTrack",
       "Generate MIDI on new track...",
       "generateMidiNewTrack"
+    ),
+    context.ui.registerContextMenuAction(
+      "MidiClip",
+      "Refine MIDI...",
+      "refineMidi"
     ),
   ]);
 }

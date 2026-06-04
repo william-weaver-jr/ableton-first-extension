@@ -4,6 +4,7 @@ import {
   detectUserSpecifiedInstrument,
   generateMidiFromPrompt,
   KNOWN_INSTRUMENTS,
+  type RefinementContext,
   type SongContext,
 } from "./generateMidi.js";
 
@@ -179,6 +180,42 @@ describe("generateMidiFromPrompt", () => {
     const body = JSON.parse((vi.mocked(fetch).mock.calls[0]![1] as RequestInit).body as string);
     expect(body.thinking).toEqual({ type: "enabled", budget_tokens: 8000 });
     expect(body.max_tokens).toBeGreaterThan(body.thinking.budget_tokens);
+  });
+
+  it("sends a three-turn conversation when refinement context is provided", async () => {
+    const payload = JSON.stringify({
+      notes: [{ pitch: 62, startTime: 0, duration: 0.5, velocity: 90 }],
+      clipLength: 8,
+    });
+    vi.mocked(fetch).mockResolvedValue(makeFetchResponse(payload));
+
+    const refinement: RefinementContext = {
+      notes: [{ pitch: 60, startTime: 0, duration: 1, velocity: 80 }],
+      clipLength: 4,
+      originalPrompt: "4-bar bassline",
+    };
+    await generateMidiFromPrompt("add more syncopation", { refinement });
+
+    const body = JSON.parse((vi.mocked(fetch).mock.calls[0]![1] as RequestInit).body as string);
+    expect(body.messages).toHaveLength(3);
+    expect(body.messages[0]).toMatchObject({ role: "user", content: "4-bar bassline" });
+    expect(body.messages[1].role).toBe("assistant");
+    const assistantJson = JSON.parse(body.messages[1].content);
+    expect(assistantJson.clipLength).toBe(4);
+    expect(assistantJson.notes[0].pitch).toBe(60);
+    expect(body.messages[2]).toMatchObject({ role: "user", content: "add more syncopation" });
+  });
+
+  it("falls back to a generic first turn when originalPrompt is absent", async () => {
+    const payload = JSON.stringify({ notes: [], clipLength: 4 });
+    vi.mocked(fetch).mockResolvedValue(makeFetchResponse(payload));
+
+    await generateMidiFromPrompt("slower", {
+      refinement: { notes: [], clipLength: 4 },
+    });
+
+    const body = JSON.parse((vi.mocked(fetch).mock.calls[0]![1] as RequestInit).body as string);
+    expect(body.messages[0].content).toBe("Generate a MIDI clip");
   });
 
   it("extracts text block from a response that includes thinking blocks", async () => {

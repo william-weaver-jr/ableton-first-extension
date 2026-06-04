@@ -12,6 +12,12 @@ export interface SongContext {
   scaleName: string;
 }
 
+export interface RefinementContext {
+  notes: NoteDescription[];
+  clipLength: number;
+  originalPrompt?: string; // clip name used as the original user turn
+}
+
 export const KNOWN_INSTRUMENTS = [
   "Operator", "Wavetable", "Analog", "Electric",
   "Simpler", "Impulse", "Drift", "Meld", "Tension", "Collision",
@@ -76,9 +82,32 @@ Guidelines:
 - Drum patterns / percussion: Impulse
 - Modern evolving textures: Drift or Wavetable`;
 
+function buildMessages(
+  prompt: string,
+  refinement?: RefinementContext
+): Array<{ role: "user" | "assistant"; content: string }> {
+  if (!refinement) return [{ role: "user", content: prompt }];
+
+  const previousJson = JSON.stringify({
+    notes: refinement.notes.map((n) => ({
+      pitch: n.pitch,
+      startTime: n.startTime,
+      duration: n.duration,
+      velocity: n.velocity ?? 80,
+    })),
+    clipLength: refinement.clipLength,
+  });
+
+  return [
+    { role: "user", content: refinement.originalPrompt ?? "Generate a MIDI clip" },
+    { role: "assistant", content: previousJson },
+    { role: "user", content: prompt },
+  ];
+}
+
 export async function generateMidiFromPrompt(
   prompt: string,
-  options?: { suggestInstrument?: boolean; songContext?: SongContext }
+  options?: { suggestInstrument?: boolean; songContext?: SongContext; refinement?: RefinementContext }
 ): Promise<GeneratedMidi> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -104,7 +133,7 @@ export async function generateMidiFromPrompt(
       system:
         (options?.suggestInstrument ? SYSTEM_PROMPT + INSTRUMENT_ADDENDUM : SYSTEM_PROMPT) +
         (options?.songContext ? buildSongContextSection(options.songContext) : ""),
-      messages: [{ role: "user", content: prompt }],
+      messages: buildMessages(prompt, options?.refinement),
     }),
   });
 
