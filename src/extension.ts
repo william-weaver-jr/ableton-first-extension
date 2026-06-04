@@ -7,7 +7,18 @@ import {
 } from "@ableton-extensions/sdk";
 import { generateMidiFromPrompt, detectUserSpecifiedInstrument } from "./generateMidi.js";
 
-function makeDialog(label: string, placeholder: string, submitLabel: string): string {
+function makeDialog(
+  label: string,
+  placeholder: string,
+  submitLabel: string,
+  opts?: { hints?: string; examples?: string[] }
+): string {
+  const hintsHtml = opts?.hints
+    ? `<p class="hints">${opts.hints}</p>`
+    : "";
+  const examplesHtml = opts?.examples?.length
+    ? `<div class="examples">${opts.examples.map((e) => `<button class="example" onclick="fillPrompt(this)">${e}</button>`).join("")}</div>`
+    : "";
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -18,7 +29,7 @@ function makeDialog(label: string, placeholder: string, submitLabel: string): st
       font-family: -apple-system, BlinkMacSystemFont, sans-serif;
       background: #1e1e1e; color: #d4d4d4;
       padding: 20px; height: 100vh;
-      display: flex; flex-direction: column; gap: 12px;
+      display: flex; flex-direction: column; gap: 10px;
     }
     label { font-size: 12px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.05em; }
     textarea {
@@ -29,6 +40,14 @@ function makeDialog(label: string, placeholder: string, submitLabel: string): st
     }
     textarea:focus { border-color: #ff7043; }
     textarea::placeholder { color: #555; }
+    .hints { font-size: 11px; color: #555; }
+    .examples { display: flex; flex-wrap: wrap; gap: 5px; }
+    .example {
+      background: #252525; border: 1px solid #383838; color: #666;
+      border-radius: 3px; padding: 3px 8px; font-size: 11px;
+      cursor: pointer; font-weight: 400; text-align: left; line-height: 1.4;
+    }
+    .example:hover { background: #2d2d2d; color: #999; border-color: #444; }
     .buttons { display: flex; gap: 8px; justify-content: flex-end; }
     button {
       padding: 7px 18px; border-radius: 4px; cursor: pointer;
@@ -44,6 +63,8 @@ function makeDialog(label: string, placeholder: string, submitLabel: string): st
 <body>
   <label>${label}</label>
   <textarea id="prompt" placeholder="${placeholder}" autofocus></textarea>
+  ${hintsHtml}
+  ${examplesHtml}
   <div class="buttons">
     <button class="cancel" onclick="cancel()">Cancel</button>
     <button class="generate" id="generateBtn" onclick="submit()">${submitLabel}</button>
@@ -64,6 +85,10 @@ function makeDialog(label: string, placeholder: string, submitLabel: string): st
       post({ prompt });
     }
     function cancel() { post({}); }
+    function fillPrompt(btn) {
+      document.getElementById('prompt').value = btn.textContent;
+      document.getElementById('prompt').focus();
+    }
     document.getElementById('prompt').addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) submit();
     });
@@ -74,8 +99,18 @@ function makeDialog(label: string, placeholder: string, submitLabel: string): st
 
 const PROMPT_DIALOG_HTML = makeDialog(
   "Describe the MIDI pattern",
-  "e.g. a funky 4-bar bassline in C minor, syncopated 16th notes",
-  "Generate"
+  "4-bar funk bassline in C minor, syncopated 16ths, ghost notes",
+  "Generate",
+  {
+    hints: "Tip: be specific — <strong style='color:#777'>key · style · feel · bars · technique</strong> gives the best results",
+    examples: [
+      "4-bar funk bassline in C minor, syncopated 16ths, ghost notes",
+      "8-bar jazz piano chords in F major, swung 8ths, medium density",
+      "2-bar trap hi-hat pattern, 16th grid, varied velocity and open hats",
+      "4-bar lead melody in A Dorian, pentatonic, question-answer phrasing",
+      "1-bar drum loop, kick on 1 and 3, snare on 2 and 4, 8th hi-hats",
+    ],
+  }
 );
 
 const REFINE_DIALOG_HTML = makeDialog(
@@ -95,7 +130,7 @@ export async function activate(activation: ActivationContext) {
     const dialogUrl = `data:text/html,${encodeURIComponent(PROMPT_DIALOG_HTML)}`;
     let result: string;
     try {
-      result = await context.ui.showModalDialog(dialogUrl, 480, 240);
+      result = await context.ui.showModalDialog(dialogUrl, 480, 380);
     } catch {
       return; // dialog errored or was dismissed
     }
@@ -173,7 +208,7 @@ export async function activate(activation: ActivationContext) {
     const dialogUrl = `data:text/html,${encodeURIComponent(PROMPT_DIALOG_HTML)}`;
     let result: string;
     try {
-      result = await context.ui.showModalDialog(dialogUrl, 480, 240);
+      result = await context.ui.showModalDialog(dialogUrl, 480, 380);
     } catch {
       return;
     }
