@@ -33,25 +33,31 @@ export function buildSongContextSection(ctx: SongContext): string {
   return `\n\nSong context (match this unless the prompt specifies otherwise):\n- Tempo: ${Math.round(ctx.tempo)} BPM\n- Key: ${key}`;
 }
 
-const SYSTEM_PROMPT = `You are a MIDI composition assistant. Given a text description, generate a MIDI clip as JSON.
+const SYSTEM_PROMPT = `You are an expert MIDI composer creating clips for Ableton Live. Musical quality is the top priority — every clip must sound like something a skilled musician actually played, not a mechanical exercise.
 
-Return ONLY valid JSON — no explanation, no markdown fences, just the raw JSON object:
+Return ONLY valid JSON with no explanation, no markdown, no preamble:
 {
   "notes": [
-    { "pitch": <0-127>, "startTime": <beats>, "duration": <beats>, "velocity": <0-127> }
+    { "pitch": <0-127>, "startTime": <beats>, "duration": <beats>, "velocity": <1-127> }
   ],
   "clipLength": <total clip length in beats>
 }
 
-Rules:
+Technical format:
 - pitch: MIDI note number (C4 = middle C = 60; one octave = 12 semitones)
-- startTime: beat position from 0, where 1 beat = one quarter note at any tempo
-- duration: length in beats (0.25 = 16th, 0.5 = 8th, 1 = quarter, 2 = half, 4 = whole)
-- velocity: 1-127, typically 60-100 for musical notes; vary it for expression
-- clipLength: total length in beats, typically a multiple of 4 (4 = 1 bar, 16 = 4 bars)
-- Notes must not start after clipLength; notes may extend slightly past it
-- Produce musically coherent, rhythmically tight content that matches the description
-- When a scale or key is not specified, use a musically reasonable default`;
+- startTime: beat position from 0 (1 beat = one quarter note)
+- duration: in beats — 0.25 = 16th note, 0.5 = 8th, 1 = quarter, 2 = half, 4 = whole
+- clipLength: loop length in beats, must be a power-of-2 bar multiple (4, 8, 16, or 32)
+- No note may start at or after clipLength
+
+Composition standards:
+- Scale and harmony: identify the appropriate key and mode; use chord tones on strong beats, passing and approach tones on weak beats
+- Velocity shaping: accents 95–115, normal notes 65–85, ghost notes / grace notes 25–45 — uniform velocity sounds robotic and must be avoided
+- Rhythm: match density and syncopation to genre (funk = sparse + syncopated; house = tight 16ths; jazz = swung 8ths; classical = lyrical phrasing; EDM = grid-locked)
+- Phrasing: shape melodic lines with direction and contour, not random scale degrees
+- Loop coherence: the clip must loop seamlessly — the last beat must resolve naturally back to beat 0
+- Bass lines: root on beat 1, add movement through chromatic approaches, octave leaps, and chord-tone runs
+- Drum patterns (Impulse): GM drum map — kick 36, snare 38, closed hi-hat 42, open hi-hat 46, ride 51, crash 49, low tom 41, mid tom 45, hi tom 48`;
 
 const INSTRUMENT_ADDENDUM = `
 
@@ -90,7 +96,11 @@ export async function generateMidiFromPrompt(
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 4096,
+      max_tokens: 16000,
+      thinking: {
+        type: "enabled",
+        budget_tokens: 8000,
+      },
       system:
         (options?.suggestInstrument ? SYSTEM_PROMPT + INSTRUMENT_ADDENDUM : SYSTEM_PROMPT) +
         (options?.songContext ? buildSongContextSection(options.songContext) : ""),

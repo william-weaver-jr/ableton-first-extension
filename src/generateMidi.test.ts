@@ -166,4 +166,42 @@ describe("generateMidiFromPrompt", () => {
     expect(body.system).toContain("Tempo: 130 BPM");
     expect(body.system).toContain("Key: A Minor");
   });
+
+  it("sends extended thinking parameters in every request", async () => {
+    const payload = JSON.stringify({
+      notes: [{ pitch: 60, startTime: 0, duration: 1, velocity: 80 }],
+      clipLength: 4,
+    });
+    vi.mocked(fetch).mockResolvedValue(makeFetchResponse(payload));
+
+    await generateMidiFromPrompt("test prompt");
+
+    const body = JSON.parse((vi.mocked(fetch).mock.calls[0]![1] as RequestInit).body as string);
+    expect(body.thinking).toEqual({ type: "enabled", budget_tokens: 8000 });
+    expect(body.max_tokens).toBeGreaterThan(body.thinking.budget_tokens);
+  });
+
+  it("extracts text block from a response that includes thinking blocks", async () => {
+    const jsonPayload = JSON.stringify({
+      notes: [{ pitch: 60, startTime: 0, duration: 1, velocity: 80 }],
+      clipLength: 4,
+    });
+    // Simulate a response where the thinking block comes before the text block
+    const responseWithThinking = {
+      ok: true,
+      status: 200,
+      text: async () => "",
+      json: async () => ({
+        content: [
+          { type: "thinking", thinking: "Let me reason about this..." },
+          { type: "text", text: jsonPayload },
+        ],
+      }),
+    } as unknown as Response;
+    vi.mocked(fetch).mockResolvedValue(responseWithThinking);
+
+    const result = await generateMidiFromPrompt("test");
+    expect(result.clipLength).toBe(4);
+    expect(result.notes).toHaveLength(1);
+  });
 });
