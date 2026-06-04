@@ -105,6 +105,14 @@ function buildMessages(
   ];
 }
 
+function extractJson(text: string): string {
+  const fenced = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+  if (fenced) return fenced[1]!;
+  const bare = text.match(/(\{[\s\S]*\})/);
+  if (bare) return bare[1]!;
+  return text;
+}
+
 export async function generateMidiFromPrompt(
   prompt: string,
   options?: { suggestInstrument?: boolean; songContext?: SongContext; refinement?: RefinementContext }
@@ -149,9 +157,10 @@ export async function generateMidiFromPrompt(
   const text = data.content.find((b) => b.type === "text")?.text;
   if (!text) throw new Error("No text content in Claude API response");
 
+  const jsonText = extractJson(text);
   let parsed: GeneratedMidi;
   try {
-    parsed = JSON.parse(text) as GeneratedMidi;
+    parsed = JSON.parse(jsonText) as GeneratedMidi;
   } catch {
     throw new Error(`Claude returned invalid JSON:\n${text}`);
   }
