@@ -4,7 +4,7 @@ import {
   type ActivationContext,
   type Handle,
 } from "@ableton-extensions/sdk";
-import { generateMidiFromPrompt } from "./generateMidi.js";
+import { generateMidiFromPrompt, detectUserSpecifiedInstrument } from "./generateMidi.js";
 
 const PROMPT_DIALOG_HTML = `<!DOCTYPE html>
 <html>
@@ -96,6 +96,7 @@ export async function activate(activation: ActivationContext) {
       rootNote: song.rootNote,
       scaleName: song.scaleName,
     };
+    const userInstrument = detectUserSpecifiedInstrument(prompt);
 
     // Generate and insert the clip
     await context.ui.withinProgressDialog(
@@ -106,11 +107,36 @@ export async function activate(activation: ActivationContext) {
 
         let generated;
         try {
-          generated = await generateMidiFromPrompt(prompt, { songContext });
+          generated = await generateMidiFromPrompt(prompt, {
+            suggestInstrument: true,
+            songContext,
+          });
         } catch (err) {
           await update(`Error: ${String(err)}`, 0);
           await new Promise((resolve) => setTimeout(resolve, 3000));
           return;
+        }
+
+        if (signal.aborted) return;
+
+        // Instrument loading: user-specified always wins; otherwise only load when track is empty.
+        const hasExistingDevices = track.devices.length > 0;
+        const instrumentName = userInstrument ?? generated.instrument?.name;
+
+        if (instrumentName && (userInstrument !== undefined || !hasExistingDevices)) {
+          if (hasExistingDevices) {
+            console.log(`[generateMidi] User requested ${instrumentName} — adding alongside existing device(s)`);
+          } else {
+            console.log(`[generateMidi] Loading suggested instrument: ${instrumentName}`);
+          }
+          await update(`Loading ${instrumentName}...`, 70);
+          try {
+            await track.insertDevice(instrumentName, 0);
+          } catch {
+            console.warn(`[generateMidi] Could not load ${instrumentName} — device may not be installed`);
+          }
+        } else if (hasExistingDevices) {
+          console.log(`[generateMidi] Skipping instrument — track already has ${track.devices.length} device(s); specify one in your prompt to override`);
         }
 
         if (signal.aborted) return;
@@ -149,6 +175,7 @@ export async function activate(activation: ActivationContext) {
       rootNote: song.rootNote,
       scaleName: song.scaleName,
     };
+    const userInstrument = detectUserSpecifiedInstrument(prompt);
 
     await context.ui.withinProgressDialog(
       "Generating MIDI...",
@@ -174,12 +201,15 @@ export async function activate(activation: ActivationContext) {
         const newTrack = await song.createMidiTrack();
         newTrack.name = prompt.slice(0, 40);
 
-        if (generated.instrument && !signal.aborted) {
-          await update(`Loading ${generated.instrument.name}...`, 65);
+        // User-specified instrument takes priority over Claude's suggestion.
+        const instrumentName = userInstrument ?? generated.instrument?.name;
+        if (instrumentName && !signal.aborted) {
+          console.log(`[generateMidiNewTrack] Loading instrument: ${instrumentName}${userInstrument ? " (user specified)" : " (suggested)"}`);
+          await update(`Loading ${instrumentName}...`, 65);
           try {
-            await newTrack.insertDevice(generated.instrument.name, 0);
+            await newTrack.insertDevice(instrumentName, 0);
           } catch {
-            // Device not installed — track is left empty, user can load manually
+            console.warn(`[generateMidiNewTrack] Could not load ${instrumentName} — device may not be installed`);
           }
         }
 

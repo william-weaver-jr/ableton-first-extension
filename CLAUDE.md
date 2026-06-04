@@ -9,9 +9,11 @@ npm start          # type-check + dev build + run in Live's Extension Host
 npm run build:dev  # type-check + dev bundle (sourcemaps, unminified)
 npm run build      # type-check + production bundle (minified, no sourcemaps)
 npm run package    # production build + create .ablx archive for distribution
+npm test           # run unit tests with Vitest
+npm run test:watch # Vitest in watch mode
 ```
 
-There is no test suite. Type-check alone: `npx tsc --noEmit`.
+Type-check alone: `npx tsc --noEmit`.
 
 ## Architecture
 
@@ -54,7 +56,11 @@ Key SDK types used in this project:
 
 ### Instrument loading
 
-`generateMidiNewTrack` asks Claude to suggest a built-in Live instrument and calls `track.insertDevice(name, 0)`. Failures are silently caught — the track is left empty rather than erroring. Valid instrument names are constrained in the system prompt to: `Operator, Wavetable, Analog, Electric, Simpler, Impulse, Drift, Meld, Tension, Collision`.
+Both commands ask Claude to suggest a built-in Live instrument and call `track.insertDevice(name, 0)`. Failures are caught and logged — the track is left without the device rather than erroring. Valid instrument names: `Operator, Wavetable, Analog, Electric, Simpler, Impulse, Drift, Meld, Tension, Collision`.
+
+`generateMidi` (existing track): loads the suggested instrument only when the track has no existing devices. If the user names an instrument in their prompt (e.g. "use Operator"), it is loaded regardless of existing devices. Console logs record every instrument decision.
+
+`generateMidiNewTrack` (new track): always loads an instrument. User-specified instrument takes priority over Claude's suggestion.
 
 ### Dialog pattern
 

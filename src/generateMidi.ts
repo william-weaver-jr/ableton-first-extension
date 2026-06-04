@@ -12,9 +12,22 @@ export interface SongContext {
   scaleName: string;
 }
 
+export const KNOWN_INSTRUMENTS = [
+  "Operator", "Wavetable", "Analog", "Electric",
+  "Simpler", "Impulse", "Drift", "Meld", "Tension", "Collision",
+] as const;
+
+/** Returns the instrument name if the user explicitly named one in their prompt, otherwise undefined. */
+export function detectUserSpecifiedInstrument(prompt: string): string | undefined {
+  const lower = prompt.toLowerCase();
+  return KNOWN_INSTRUMENTS.find((name) =>
+    new RegExp(`\\b${name.toLowerCase()}\\b`).test(lower)
+  );
+}
+
 const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-function buildSongContextSection(ctx: SongContext): string {
+export function buildSongContextSection(ctx: SongContext): string {
   const noteName = NOTE_NAMES[ctx.rootNote % 12] ?? "C";
   const key = ctx.scaleName ? `${noteName} ${ctx.scaleName}` : noteName;
   return `\n\nSong context (match this unless the prompt specifies otherwise):\n- Tempo: ${Math.round(ctx.tempo)} BPM\n- Key: ${key}`;
