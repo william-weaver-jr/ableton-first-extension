@@ -191,6 +191,22 @@ describe("generateMidiFromPrompt", () => {
     expect(body.system).toContain("0, 2, 4, 5, 7, 9, 11");
   });
 
+  it("includes few-shot examples in every request", async () => {
+    const payload = JSON.stringify({
+      notes: [{ pitch: 60, startTime: 0, duration: 1, velocity: 80 }],
+      clipLength: 4,
+    });
+    vi.mocked(fetch).mockResolvedValue(makeFetchResponse(payload));
+
+    await generateMidiFromPrompt("test prompt");
+
+    const body = JSON.parse((vi.mocked(fetch).mock.calls[0]![1] as RequestInit).body as string);
+    expect(body.system).toContain("QUALITY REFERENCE EXAMPLES");
+    expect(body.system).toContain("boom-bap");
+    expect(body.system).toContain("funk bass");
+    expect(body.system).toContain("lead melody");
+  });
+
   it("appends session context to system prompt when provided", async () => {
     const payload = JSON.stringify({
       notes: [{ pitch: 60, startTime: 0, duration: 1, velocity: 80 }],

@@ -74,6 +74,27 @@ Composition standards:
 - Bass lines: root on beat 1, add movement through chromatic approaches, octave leaps, and chord-tone runs
 - Drum patterns (Impulse): GM drum map — kick 36, snare 38, closed hi-hat 42, open hi-hat 46, ride 51, crash 49, low tom 41, mid tom 45, hi tom 48`;
 
+// Three hand-crafted reference examples demonstrating the quality and detail expected.
+// Velocities are intentionally varied; rhythms are idiomatically correct per genre.
+const FEW_SHOT_EXAMPLES = `
+
+QUALITY REFERENCE EXAMPLES — study these before generating; match this level of musicality:
+
+[EXAMPLE 1 · Boom-bap hip-hop drum loop · 1 bar · Impulse]
+Prompt: "1-bar boom-bap hip-hop drum loop, kick and snare backbone, ghost snares, swung open-hat accent"
+{"notes":[{"pitch":36,"startTime":0,"duration":0.25,"velocity":112},{"pitch":42,"startTime":0,"duration":0.25,"velocity":72},{"pitch":42,"startTime":0.5,"duration":0.25,"velocity":58},{"pitch":38,"startTime":1,"duration":0.25,"velocity":108},{"pitch":42,"startTime":1,"duration":0.25,"velocity":65},{"pitch":38,"startTime":1.25,"duration":0.25,"velocity":32},{"pitch":42,"startTime":1.5,"duration":0.25,"velocity":52},{"pitch":36,"startTime":1.75,"duration":0.25,"velocity":82},{"pitch":42,"startTime":2,"duration":0.25,"velocity":70},{"pitch":46,"startTime":2.75,"duration":0.25,"velocity":78},{"pitch":38,"startTime":3,"duration":0.25,"velocity":105},{"pitch":42,"startTime":3,"duration":0.25,"velocity":55},{"pitch":38,"startTime":3.25,"duration":0.25,"velocity":30},{"pitch":36,"startTime":3.5,"duration":0.25,"velocity":75},{"pitch":42,"startTime":3.5,"duration":0.25,"velocity":62},{"pitch":42,"startTime":3.75,"duration":0.25,"velocity":48}],"clipLength":4}
+What makes it authentic: kick on 1 and the "and" of 3 (syncopated boom-bap placement); snare ghosted on the "e" of beat 2 (vel 32) and "e" of beat 4 (vel 30); open hat on the "ah" of beat 2 as a breath; hi-hats alternate 72/58/65/52 — never uniform.
+
+[EXAMPLE 2 · Funk bassline · C minor · 2 bars · Analog]
+Prompt: "2-bar funk bass in C minor, 16th-note grid, syncopated, ghost notes, octave leaps, chromatic approach tones"
+{"notes":[{"pitch":36,"startTime":0,"duration":0.25,"velocity":105},{"pitch":36,"startTime":0.5,"duration":0.25,"velocity":28},{"pitch":39,"startTime":0.75,"duration":0.25,"velocity":90},{"pitch":41,"startTime":1,"duration":0.5,"velocity":98},{"pitch":43,"startTime":1.5,"duration":0.25,"velocity":85},{"pitch":43,"startTime":1.75,"duration":0.25,"velocity":30},{"pitch":48,"startTime":2,"duration":0.25,"velocity":102},{"pitch":46,"startTime":2.5,"duration":0.25,"velocity":88},{"pitch":44,"startTime":2.75,"duration":0.25,"velocity":80},{"pitch":43,"startTime":3,"duration":0.5,"velocity":95},{"pitch":41,"startTime":3.5,"duration":0.25,"velocity":72},{"pitch":39,"startTime":3.75,"duration":0.25,"velocity":88},{"pitch":36,"startTime":4,"duration":0.5,"velocity":100},{"pitch":36,"startTime":4.75,"duration":0.25,"velocity":25},{"pitch":41,"startTime":5,"duration":0.25,"velocity":92},{"pitch":43,"startTime":5.25,"duration":0.25,"velocity":30},{"pitch":43,"startTime":5.5,"duration":0.25,"velocity":85},{"pitch":44,"startTime":5.75,"duration":0.25,"velocity":82},{"pitch":41,"startTime":6,"duration":0.5,"velocity":95},{"pitch":41,"startTime":6.5,"duration":0.25,"velocity":28},{"pitch":39,"startTime":6.75,"duration":0.25,"velocity":80},{"pitch":36,"startTime":7,"duration":0.25,"velocity":92},{"pitch":48,"startTime":7.25,"duration":0.25,"velocity":88},{"pitch":46,"startTime":7.5,"duration":0.25,"velocity":75},{"pitch":44,"startTime":7.75,"duration":0.25,"velocity":90}],"clipLength":8}
+What makes it authentic: root C1(36) lands on beat 1 strong (vel 105); ghost C1 on the "and" of 1 (vel 28) adds pocket; Eb(39)→F(41) is a chromatic half-step approach; octave jump to C2(48) at beat 2 creates lift; Ab(44) is a chromatic passing tone between G(43) and G; bar 2 varies the pattern to avoid repetition; final four notes walk chromatically back to root for seamless loop.
+
+[EXAMPLE 3 · Expressive lead melody · D natural minor · 4 bars · Wavetable]
+Prompt: "4-bar lead melody in D natural minor, pentatonic runs with passing tones, rising arc in bars 1–2, climax in bar 3, resolve to root in bar 4"
+{"notes":[{"pitch":62,"startTime":0,"duration":0.5,"velocity":88},{"pitch":65,"startTime":0.5,"duration":0.5,"velocity":75},{"pitch":67,"startTime":1,"duration":0.5,"velocity":92},{"pitch":69,"startTime":1.5,"duration":0.5,"velocity":82},{"pitch":72,"startTime":2,"duration":0.75,"velocity":105},{"pitch":69,"startTime":2.75,"duration":0.25,"velocity":80},{"pitch":67,"startTime":3,"duration":0.5,"velocity":88},{"pitch":65,"startTime":3.75,"duration":0.25,"velocity":72},{"pitch":62,"startTime":4.5,"duration":0.5,"velocity":85},{"pitch":65,"startTime":5,"duration":0.5,"velocity":78},{"pitch":67,"startTime":5.5,"duration":0.5,"velocity":95},{"pitch":69,"startTime":6,"duration":0.5,"velocity":88},{"pitch":67,"startTime":6.5,"duration":0.25,"velocity":72},{"pitch":65,"startTime":7,"duration":0.5,"velocity":80},{"pitch":62,"startTime":7.5,"duration":0.5,"velocity":68},{"pitch":67,"startTime":8.5,"duration":0.5,"velocity":92},{"pitch":69,"startTime":9,"duration":0.5,"velocity":88},{"pitch":72,"startTime":9.5,"duration":0.25,"velocity":100},{"pitch":74,"startTime":9.75,"duration":0.25,"velocity":110},{"pitch":72,"startTime":10,"duration":0.5,"velocity":90},{"pitch":69,"startTime":10.5,"duration":0.5,"velocity":80},{"pitch":67,"startTime":11,"duration":0.5,"velocity":85},{"pitch":65,"startTime":11.5,"duration":0.5,"velocity":75},{"pitch":64,"startTime":12,"duration":0.5,"velocity":88},{"pitch":65,"startTime":12.5,"duration":0.5,"velocity":82},{"pitch":67,"startTime":13,"duration":0.5,"velocity":92},{"pitch":69,"startTime":13.5,"duration":0.25,"velocity":78},{"pitch":62,"startTime":14,"duration":2,"velocity":105}],"clipLength":16}
+What makes it authentic: rests in bars 1–2 (no note at beat 0.25, gap at beat 4–4.5) let the phrase breathe; C5(72) on the downbeat of bar 2 is the phrase peak; bar 3 reaches D5(74) — the highest note — on the "ah" of beat 2 (vel 110) for maximum tension; E(64) in bar 4 is a diatonic passing tone into the cadential descent; final D4(62) lands with a 2-beat sustain to anchor the loop.`;
+
 const INSTRUMENT_ADDENDUM = `
 
 Also include an "instrument" field with the best Ableton built-in instrument for this sound:
@@ -153,7 +174,9 @@ export async function generateMidiFromPrompt(
         budget_tokens: 8000,
       },
       system:
-        (options?.suggestInstrument ? SYSTEM_PROMPT + INSTRUMENT_ADDENDUM : SYSTEM_PROMPT) +
+        SYSTEM_PROMPT +
+        FEW_SHOT_EXAMPLES +
+        (options?.suggestInstrument ? INSTRUMENT_ADDENDUM : "") +
         (options?.songContext ? buildSongContextSection(options.songContext) : "") +
         (options?.sessionContext
           ? `\n\nSession context (existing tracks — generate something that complements these):\n${options.sessionContext}`
