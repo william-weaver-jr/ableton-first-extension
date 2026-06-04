@@ -1,0 +1,7 @@
+{
+    "name": "my-first-extension",
+    "author": "Bill Weaver",
+    "entry": "dist/extension.js",
+    "version": "1.0.0",
+    "minimumApiVersion": "1.0.0"
+}
